@@ -3,36 +3,44 @@
 var gulp = require('gulp');
 var debug = require('gulp-debug');
 var atch = require('gulp-watch');
-var sass = require('gulp-sass'); //not
-var importCss = require('gulp-import-css'); //yes
-var autoprefixer = require('gulp-autoprefixer'); //yes
+var sass = require('gulp-sass');
+var importCss = require('gulp-import-css');
+var autoprefixer = require('gulp-autoprefixer');
 var rigger = require('gulp-rigger');
 var svgstore = require('gulp-svgstore');
 var svgmin = require('gulp-svgmin');
 var imageop = require('gulp-image-optimization');
-var concat = require('gulp-concat'); //not
+var imagemin = require('gulp-imagemin');
+var imJpegRecompress = require('imagemin-jpeg-recompress');
+var impngquant = require('imagemin-pngquant');
+var concat = require('gulp-concat');
 var cleanCSS = require('gulp-clean-css');
+var csso = require('gulp-csso');
+var csscomb = require('gulp-csscomb');
 var rename = require('gulp-rename');
 var compass = require('gulp-compass');
-var clean = require('gulp-clean'); //not
-var notify = require('gulp-notify'); //yes
-var plumber = require('gulp-plumber'); //yes
+var clean = require('gulp-clean');
+var notify = require('gulp-notify');
+var plumber = require('gulp-plumber');
 var sourcemaps = require('gulp-sourcemaps');
-var uglify = require('gulp-uglify'); //yes
+var uglify = require('gulp-uglify');
 var wiredep = require('gulp-wiredep');
 var useref = require('gulp-useref');
 var gulpIf = require('gulp-if');
 var argv = require('yargs').argv;
 var browserSync = require('browser-sync').create();
 var del = require('del');
-var newer = require('gulp-newer'); //yes
+var newer = require('gulp-newer');
+var cache = require('gulp-cache');
 var isDevelopment = !process.env.NODE_ENV || process.env.NODE_ENV == 'development';
+
 var path = {
     frontend: { //Пути исходников
         html: 'frontend/*.html',
         js: 'frontend/js/main.js',
         styles: 'frontend/styles/main.css',
-        img: 'frontend/img/**/*.*',
+        img: 'frontend/image/img/**/*.*',
+        svg: 'frontend/image/svg/**/*.*',
         fonts: 'frontends/fonts/**/*.*'
     },
     public: { // Готовые файлы
@@ -40,68 +48,95 @@ var path = {
         js: 'public/js/',
         css: 'public/css/',
         img: 'public/img/',
+        svg: 'public/svg/',
         fonts: 'public/fonts/'
     },
     watch: {
         html: 'frontend/**/*.html',
         js: 'frontend/js/**/*.js',
         styles: 'frontend/styles/**/*.*',
-        img: 'frontend/img/**/*.*',
+        img: 'frontend/image/img/**/*.*',
         fonts: 'frontend/fonts/**/*.*'
     }
 };
 
-
+// Собираем стили
 gulp.task('styles', function() {
     return gulp.src(path.frontend.styles, { since: gulp.lastRun('styles') })
         .pipe(autoprefixer({
-            browsers: ['last 2 versions'],
+            browsers: ['last 3 versions'],
             cascade: false
         }))
         .pipe(gulpIf(isDevelopment, sourcemaps.init()))
         .pipe(importCss())
-        .pipe(gulpIf(isDevelopment, cleanCSS({ compatibility: 'ie8' })))
+        .pipe(cleanCSS({ compatibility: 'ie8' }))
+        .pipe(csscomb())
+        .pipe(csso())
         .pipe(gulpIf(isDevelopment, sourcemaps.write('.')))
+        .pipe(rename({ suffix: '.min' }))
         .pipe(gulp.dest(path.public.css))
         .pipe(browserSync.reload({ stream: true }));
 });
 
-//gulp.task('clean', function() {
-//   return gulp.src('public', { read: false })
-//        .pipe(plugins.if(argv.prod, plugins.clean()));
-//});
-gulp.task('clean', function() {
-    return del('public');
-});
 
+// Собираем статические картинки
 gulp.task('images', function() {
     return gulp.src(path.frontend.img, { since: gulp.lastRun('images') })
         .pipe(newer(path.public.img))
+        .pipe(imageop())
+        .pipe(cache(imagemin([
+            imagemin.gifsicle({ interlaced: true }),
+            imagemin.jpegtran({ progressive: true }),
+            imJpegRecompress({
+                loops: 5,
+                min: 65,
+                max: 70,
+                quality: 'medium'
+            }),
+            imagemin.svgo(),
+            imagemin.optipng({ optimizationLevel: 3 }),
+            impngquant({ quality: '65-70', speed: 5 })
+        ], {
+            verbose: true
+        })))
         .pipe(gulp.dest(path.public.img));
 });
+
+// Собираем шрифты
 gulp.task('fonts', function() {
     return gulp.src(path.frontend.fonts, { since: gulp.lastRun('fonts') })
 
     .pipe(gulp.dest(path.public.fonts));
 });
 
+// Собираем html файлы
 gulp.task('html', function() {
     return gulp.src(path.frontend.html, { since: gulp.lastRun('html') })
         .pipe(debug({ title: 'html' }))
-        .pipe(gulp.dest(path.public.html));
+        .pipe(rigger())
+        .pipe(gulp.dest(path.public.html))
+        .pipe(browserSync.reload({ stream: true }));
 });
 
+gulp.task('clean', function() {
+    return del('public');
+});
 
+gulp.task('clear', function(done) {
+    return cache.clearAll(done);
+});
 
+// Собираем файлы
 gulp.task('build', gulp.series('clean', gulp.parallel('styles', 'html', 'images', 'fonts')));
 
+// Следим за файлами
 gulp.task('watch', function() {
     gulp.watch(path.watch.styles, gulp.series('styles'));
     gulp.watch(path.watch.html, gulp.series('html'));
 });
 
 
-
+// Запускаем сервер для разработки
 gulp.task('serve', function() {
     browserSync.init({
         server: 'public'
