@@ -7,6 +7,7 @@ var sass = require('gulp-sass');
 var importCss = require('gulp-import-css');
 var autoprefixer = require('gulp-autoprefixer');
 var rigger = require('gulp-rigger');
+var cheerio = require('gulp-cheerio');
 var svgstore = require('gulp-svgstore');
 var svgmin = require('gulp-svgmin');
 var imageop = require('gulp-image-optimization');
@@ -100,6 +101,22 @@ gulp.task('images', function() {
             verbose: true
         })))
         .pipe(gulp.dest(path.public.img));
+});
+
+// Собираем svg спрайты
+gulp.task('svg', function() {
+    return gulp.src(path.frontend.svg, { since: gulp.lastRun('svg') })
+        .pipe(svgmin(function(file) {
+            return {
+                plugins: [{
+                    cleanupIDs: {
+                        minify: true
+                    }
+                }]
+            }
+        }))
+        .pipe(svgstore({ inlineSvg: true }))
+        .pipe(gulp.dest(path.public.svg));
 });
 
 // Собираем шрифты
