@@ -109,13 +109,27 @@ gulp.task('svg', function() {
         .pipe(svgmin(function(file) {
             return {
                 plugins: [{
-                    cleanupIDs: {
-                        minify: true
+                        removeTitle: true
+                    },
+                    {
+                        removeAttrs: {
+                            attrs: "(fill|stroke)"
+                        }
+                    },
+                    {
+                        removeStyleElement: true
+                    },
+                    {
+                        cleanupIDs: {
+                            minify: true
+                        }
                     }
-                }]
+                ]
             }
         }))
-        .pipe(svgstore({ inlineSvg: true }))
+        .pipe(rename({ prefix: "icon-" }))
+				.pipe(svgstore({ inlineSvg: true }))
+				.pipe(rename('sprite.svg'))
         .pipe(gulp.dest(path.public.svg));
 });
 
@@ -144,7 +158,7 @@ gulp.task('clear', function(done) {
 });
 
 // Собираем файлы
-gulp.task('build', gulp.series('clean', gulp.parallel('styles', 'html', 'images', 'fonts')));
+gulp.task('build', gulp.series('clean', gulp.parallel('styles', 'html','svg', 'images', 'fonts')));
 
 // Следим за файлами
 gulp.task('watch', function() {
