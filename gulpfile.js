@@ -128,8 +128,8 @@ gulp.task('svg', function() {
             }
         }))
         .pipe(rename({ prefix: "icon-" }))
-				.pipe(svgstore({ inlineSvg: true }))
-				.pipe(rename('sprite.svg'))
+        .pipe(svgstore({ inlineSvg: true }))
+        .pipe(rename('sprite.svg'))
         .pipe(gulp.dest(path.public.svg));
 });
 
@@ -149,6 +149,19 @@ gulp.task('html', function() {
         .pipe(browserSync.reload({ stream: true }));
 });
 
+// Собираем js файлы
+gulp.task('js', function() {
+    return gulp.src(path.frontend.js, { since: gulp.lastRun('js') })
+        .pipe(debug({ title: 'js' }))
+        .pipe(rigger())
+        .pipe(sourcemaps.init())
+        .pipe(uglify())
+        .pipe(sourcemaps.write())
+        .pipe(gulp.dest(path.public.js))
+        .pipe(browserSync.reload({ stream: true }));
+});
+
+
 gulp.task('clean', function() {
     return del('public');
 });
@@ -158,7 +171,7 @@ gulp.task('clear', function(done) {
 });
 
 // Собираем файлы
-gulp.task('build', gulp.series('clean', gulp.parallel('styles', 'html','svg', 'images', 'fonts')));
+gulp.task('build', gulp.series('clean', gulp.parallel('styles', 'html', 'svg', 'js', 'images', 'fonts')));
 
 // Следим за файлами
 gulp.task('watch', function() {
