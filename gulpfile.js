@@ -40,8 +40,8 @@ var path = {
         html: 'frontend/*.html',
         js: 'frontend/js/main.js',
         styles: 'frontend/styles/main.css',
-        img: 'frontend/image/img/**/*.*',
-        svg: 'frontend/image/svg/**/*.*',
+        img: 'frontend/img/**/*.*',
+        svg: 'frontend/svg/**/*.*',
         fonts: 'frontends/fonts/**/*.*'
     },
     public: { // Готовые файлы
@@ -84,22 +84,22 @@ gulp.task('styles', function() {
 gulp.task('images', function() {
     return gulp.src(path.frontend.img, { since: gulp.lastRun('images') })
         .pipe(newer(path.public.img))
-        .pipe(imageop())
-        .pipe(cache(imagemin([
-            imagemin.gifsicle({ interlaced: true }),
-            imagemin.jpegtran({ progressive: true }),
-            imJpegRecompress({
-                loops: 5,
-                min: 65,
-                max: 70,
-                quality: 'medium'
-            }),
-            imagemin.svgo(),
-            imagemin.optipng({ optimizationLevel: 3 }),
-            impngquant({ quality: '65-70', speed: 5 })
-        ], {
-            verbose: true
-        })))
+        // .pipe(imageop())
+        // .pipe(cache(imagemin([
+        //     imagemin.gifsicle({ interlaced: true }),
+        //     imagemin.jpegtran({ progressive: true }),
+        //     imJpegRecompress({
+        //         loops: 5,
+        //         min: 65,
+        //         max: 70,
+        //         quality: 'medium'
+        //     }),
+        //     imagemin.svgo(),
+        //     imagemin.optipng({ optimizationLevel: 3 }),
+        //     impngquant({ quality: '65-70', speed: 5 })
+        // ], {
+        //     verbose: true
+        // })))
         .pipe(gulp.dest(path.public.img));
 });
 
